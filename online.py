@@ -1,4 +1,4 @@
-import io
+   import io
 from pathlib import Path
 
 import pandas as pd
@@ -809,12 +809,14 @@ def compute_fee_summary(df: pd.DataFrame,
       只保留两列：description / total_fee
       行包括：
         - 各费用类别（物流、罚款、忠诚计划等）
-        - 采购成本（来自净利润表）
-        - 总费用（以上全部之和）
+        - 采购成本
+        - 平台其他费用合计
+        - 总费用（平台费用 + 采购成本）
     """
     rows = []
 
     # 1) 各费用类别（不包含采购成本）
+    platform_fee_total = 0.0
     for cat, info in FEE_TYPE_MAP.items():
         ru_types = info["ru_types"]
         sub = df[df["logistics_fee_type"].isin(ru_types)].copy()
@@ -836,6 +838,7 @@ def compute_fee_summary(df: pd.DataFrame,
             + loyalty_points_sum
             + logistics_sum
         )
+        platform_fee_total += total_fee
 
         rows.append({
             "description": info["desc"],
@@ -853,9 +856,14 @@ def compute_fee_summary(df: pd.DataFrame,
         "total_fee": purchase_total,
     })
 
-    # 3) 总费用 = 上面所有 total_fee 之和
-    total_all = sum(r["total_fee"] for r in rows)
+    # 3) 平台其他费用合计
+    rows.append({
+        "description": "平台其他费用合计",
+        "total_fee": platform_fee_total,
+    })
 
+    # 4) 总费用 = 平台费用 + 采购成本
+    total_all = platform_fee_total + purchase_total
     rows.append({
         "description": "总费用",
         "total_fee": total_all,
@@ -879,10 +887,22 @@ def compute_final_overview(df: pd.DataFrame,
 
     net_sales_amount = total_sales_amount - total_return_amount
 
-    total_fee_amount = float(
-        fee_summary.loc[fee_summary["description"] == "总费用", "total_fee"].iloc[0]
-    )
-    final_payable_amount = net_sales_amount - total_fee_amount
+    # 从 fee_summary 中读出：平台费用 & 采购成本 & 总费用
+    def get_fee(desc: str) -> float:
+        mask = fee_summary["description"] == desc
+        if mask.any():
+            return float(fee_summary.loc[mask, "total_fee"].iloc[0])
+        return 0.0
+
+    platform_fee_amount = get_fee("平台其他费用合计")
+    purchase_cost_total = get_fee("采购成本")
+    total_fee_amount = get_fee("总费用")
+
+    # 平台最终应付金额 = 净销售结算金额 - 平台费用（不扣采购成本）
+    final_payable_amount = net_sales_amount - platform_fee_amount
+
+    # 净利润 = 平台最终应付金额 - 采购成本
+    net_profit = final_payable_amount - purchase_cost_total
 
     overview = pd.DataFrame(
         [
@@ -891,8 +911,11 @@ def compute_final_overview(df: pd.DataFrame,
             {"metric": "total_sales_amount", "value": total_sales_amount},
             {"metric": "total_return_amount", "value": total_return_amount},
             {"metric": "net_sales_amount", "value": net_sales_amount},
+            {"metric": "platform_fee_amount", "value": platform_fee_amount},
+            {"metric": "purchase_cost_total", "value": purchase_cost_total},
             {"metric": "total_fee_amount", "value": total_fee_amount},
             {"metric": "final_payable_amount", "value": final_payable_amount},
+            {"metric": "net_profit", "value": net_profit},
         ]
     )
 
@@ -903,8 +926,11 @@ def compute_final_overview(df: pd.DataFrame,
         "total_sales_amount": "销售结算金额（含退货前）",
         "total_return_amount": "退货结算金额",
         "net_sales_amount": "净销售结算金额",
-        "total_fee_amount": "费用总额",
+        "platform_fee_amount": "平台费用（不含采购成本）",
+        "purchase_cost_total": "采购成本总额",
+        "total_fee_amount": "总费用（平台费用+采购成本）",
         "final_payable_amount": "平台最终应付金额",
+        "net_profit": "净利润",
     }
 
     overview["metric_zh"] = overview["metric"].map(metric_zh_map)
@@ -1077,46 +1103,58 @@ def main():
         # 多个 tab 显示明细
         st.subheader("明细表")
         tabs = st.tabs([
-            "1️⃣ 销售按SKU",
-            "2️⃣ 退货按SKU",
-            "3️⃣ 净销售按SKU",
-            "4️⃣ 销售物流费用",
-            "5️⃣ 取消订单物流",
-            "6️⃣ SKU 取消率",
-            "7️⃣ 费用汇总",
-            "8️⃣ Final Overview",
-            "9️⃣ 净利润按SKU",
-            "🔟 销售区域统计",
+            "1️⃣ 销售 & 退货 & 净销售",
+            "2️⃣ 物流 & 取消率",
+            "3️⃣ 费用 & 总览 & 利润",
+            "4️⃣ 销售区域统计",
         ])
 
+        # ====== Tab 1：销售 + 退货 + 净销售 ======
         with tabs[0]:
-            st.dataframe(sales_by_sku, use_container_width=True)
-
-        with tabs[1]:
-            st.dataframe(returns_by_sku, use_container_width=True)
-
-        with tabs[2]:
+            st.markdown("### 净销售按 SKU")
             st.dataframe(net_sales_by_sku, use_container_width=True)
 
-        with tabs[3]:
-            st.dataframe(sales_logistics_by_sku, use_container_width=True)
+            st.markdown("---")
+            left, right = st.columns(2)
+            with left:
+                st.markdown("#### 销售按 SKU")
+                st.dataframe(sales_by_sku, use_container_width=True)
+            with right:
+                st.markdown("#### 退货按 SKU")
+                st.dataframe(returns_by_sku, use_container_width=True)
 
-        with tabs[4]:
-            st.dataframe(cancel_logistics_by_sku, use_container_width=True)
-
-        with tabs[5]:
+        # ====== Tab 2：物流 + 取消率 ======
+        with tabs[1]:
+            st.markdown("### SKU 取消率")
             st.dataframe(cancellation_rate_by_sku, use_container_width=True)
 
-        with tabs[6]:
+            st.markdown("---")
+            left, right = st.columns(2)
+            with left:
+                st.markdown("#### 销售物流费用")
+                st.dataframe(sales_logistics_by_sku, use_container_width=True)
+            with right:
+                st.markdown("#### 取消订单物流费用")
+                st.dataframe(cancel_logistics_by_sku, use_container_width=True)
+
+        # ====== Tab 3：费用 + 总览 + 利润 ======
+        with tabs[2]:
+            st.markdown("### 总览（中文）")
+            overview_display = overview[["metric_zh", "value"]].rename(
+                columns={"metric_zh": "指标", "value": "数值"}
+            )
+            st.dataframe(overview_display, use_container_width=True)
+
+            st.markdown("---")
+            st.markdown("### 费用汇总")
             st.dataframe(fee_summary, use_container_width=True)
 
-        with tabs[7]:
-            st.dataframe(overview, use_container_width=True)
-
-        with tabs[8]:
+            st.markdown("---")
+            st.markdown("### 净利润按 SKU")
             st.dataframe(profit_by_sku, use_container_width=True)
 
-        with tabs[9]:
+        # ====== Tab 4：区域统计 ======
+        with tabs[3]:
             st.markdown("#### 按地区统计（Region）")
             st.dataframe(sales_by_region, use_container_width=True)
             st.markdown("#### 按地区取消（Region）")
@@ -1153,3 +1191,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
