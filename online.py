@@ -442,6 +442,8 @@ COLUMN_MAP = {
     "Сумма удержанная за начисленные баллы программы лояльности": "loyalty_points_deduction",
     "Кол-во": "quantity",
     "Склад": "warehouse",
+    "Хранение": "storage_fee",
+
 }
 
 REASON_SALES = ["Продажа"]
@@ -510,6 +512,7 @@ def load_week_data_from_upload(files) -> pd.DataFrame:
         "loyalty_service_fee",
         "loyalty_points_deduction",
         "quantity",
+        "storage_fee",
     ]:
         if col not in combined_df.columns:
             combined_df[col] = 0
@@ -809,13 +812,14 @@ def compute_fee_summary(df: pd.DataFrame,
       只保留两列：description / total_fee
       行包括：
         - 各费用类别（物流、罚款、忠诚计划等）
+        - 仓储费（Хранение）
         - 采购成本
         - 平台其他费用合计
         - 总费用（平台费用 + 采购成本）
     """
     rows = []
 
-    # 1) 各费用类别（不包含采购成本）
+    # 1) 各费用类别（不包含采购成本 & 仓储费）
     platform_fee_total = 0.0
     for cat, info in FEE_TYPE_MAP.items():
         ru_types = info["ru_types"]
@@ -831,7 +835,6 @@ def compute_fee_summary(df: pd.DataFrame,
             loyalty_points_sum = sub["loyalty_points_deduction"].sum()
             logistics_sum = sub["delivery_to_customer"].sum()
 
-        # total_fee = 真正的费用：罚款 + 忠诚服务费 + 积分扣费 + 物流费用
         total_fee = (
             fine_sum
             + loyalty_service_sum
@@ -845,6 +848,18 @@ def compute_fee_summary(df: pd.DataFrame,
             "total_fee": total_fee,
         })
 
+    # 1.5) 仓储费（整列 storage_fee 的总和）
+    if "storage_fee" in df.columns:
+        storage_total = float(df["storage_fee"].sum())
+    else:
+        storage_total = 0.0
+
+    rows.append({
+        "description": "仓储费",
+        "total_fee": storage_total,
+    })
+    platform_fee_total += storage_total
+
     # 2) 采购成本：来自净利润表中的“采购成本”列
     if "采购成本" in profit_by_sku.columns:
         purchase_total = float(profit_by_sku["采购成本"].sum())
@@ -856,7 +871,7 @@ def compute_fee_summary(df: pd.DataFrame,
         "total_fee": purchase_total,
     })
 
-    # 3) 平台其他费用合计
+    # 3) 平台其他费用合计（含仓储费）
     rows.append({
         "description": "平台其他费用合计",
         "total_fee": platform_fee_total,
@@ -868,6 +883,11 @@ def compute_fee_summary(df: pd.DataFrame,
         "description": "总费用",
         "total_fee": total_all,
     })
+
+    fee_df = pd.DataFrame(rows, columns=["description", "total_fee"])
+
+    return fee_df
+
 
     fee_df = pd.DataFrame(rows, columns=["description", "total_fee"])
 
