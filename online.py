@@ -43,11 +43,11 @@ FEE_TYPE_MAP = {
     },
     "loyalty_points_deduction": {
         "ru_types": ["Сумма удержанная за начисленные баллы программы лояльности"],
-        "desc": "为买家积累积分而从卖家账户扣除的金额",
+        "desc": "忠诚计划扣除的金额",
     },
     "loyalty_service_fee": {
         "ru_types": ["Стоимость участия в программе лояльности"],
-        "desc": "参与忠诚计划本身的服务费用",
+        "desc": "参与忠诚计划的服务费用",
     },
     "size_penalty": {
         "ru_types": ["Занижение фактических габаритов упаковки товара"],
@@ -502,7 +502,7 @@ def compute_final_overview(df: pd.DataFrame,
         "total_return_amount": "退货结算金额",
         "net_sales_amount": "净销售结算金额",
         "total_fee_amount": "费用总额",
-        "final_payable_amount": "平台最终应付金额",
+        "final_payable_amount": "利润金额",
     }
 
     overview["metric_zh"] = overview["metric"].map(metric_zh_map)
@@ -557,7 +557,7 @@ def main():
     st.markdown(
         """
         使用说明：
-        1. 在下方上传本周的 **2 份 WB 财务报表**（境内 + 境外），均为 `.xlsx` 格式；
+        1. 在下方上传WB每周财务报表**（境内 + 境外），均为 `.xlsx` 格式；
         2. 输入对应的周标签（例如：`0311-0911`）；
         3. 点击“开始分析”，稍等即可查看各个结果表；
         4. 可以在页面底部 **下载 summary.xlsx** 保存。
