@@ -5,425 +5,6 @@ import pandas as pd
 import streamlit as st
 
 # ==============================
-# 0. 区域 & 联邦区 映射（来自 wb_region_stats）
-# ==============================
-
-# --- 区域 -> 联邦区 ---
-REGION_TO_DISTRICT = {
-    # Центральный федеральный округ
-    "Москва": "Центральный",
-    "Московская": "Центральный",
-    "Белгородская": "Центральный",
-    "Брянская": "Центральный",
-    "Владимирская": "Центральный",
-    "Воронежская": "Центральный",
-    "Ивановская": "Центральный",
-    "Калужская": "Центральный",
-    "Костромская": "Центральный",
-    "Курская": "Центральный",
-    "Липецкая": "Центральный",
-    "Орловская": "Центральный",
-    "Рязанская": "Центральный",
-    "Смоленская": "Центральный",
-    "Тамбовская": "Центральный",
-    "Тверская": "Центральный",
-    "Тульская": "Центральный",
-    "Ярославская": "Центральный",
-
-    # Северо-Западный федеральный округ
-    "Санкт-Петербург": "Северо-Западный",
-    "Ленинградская": "Северо-Западный",
-    "Калининградская": "Северо-Западный",
-    "Мурманская": "Северо-Западный",
-    "Архангельская": "Северо-Западный",
-    "Вологодская": "Северо-Западный",
-    "Новгородская": "Северо-Западный",
-    "Псковская": "Северо-Западный",
-    "Республика Карелия": "Северо-Западный",
-    "Республика Коми": "Северо-Западный",
-
-    # Южный федеральный округ
-    "Краснодарский": "Южный",
-    "Ростовская": "Южный",
-    "Волгоградская": "Южный",
-    "Астраханская": "Южный",
-    "Республика Крым": "Южный",
-    "Севастополь": "Южный",
-    "Республика Калмыкия": "Южный",
-
-    # Северо-Кавказский федеральный округ
-    "Ставропольский": "Северо-Кавказский",
-    "Кабардино-Балкарская": "Северо-Кавказский",
-    "Республика Дагестан": "Северо-Кавказский",
-    "Республика Ингушетия": "Северо-Кавказский",
-    "Республика Северная Осетия": "Северо-Кавказский",
-    "Чеченская": "Северо-Кавказский",
-    "Карачаево-Черкесская": "Северо-Кавказский",
-
-    # Приволжский федеральный округ
-    "Республика Татарстан": "Приволжский",
-    "Республика Башкортостан": "Приволжский",
-    "Республика Мордовия": "Приволжский",
-    "Республика Марий": "Приволжский",
-    "Республика Марий Эл": "Приволжский",
-    "Республика Чувашия": "Приволжский",
-    "Нижегородская": "Приволжский",
-    "Пензенская": "Приволжский",
-    "Самарская": "Приволжский",
-    "Саратовская": "Приволжский",
-    "Ульяновская": "Приволжский",
-    "Кировская": "Приволжский",
-    "Оренбургская": "Приволжский",
-    "Пермский": "Приволжский",
-
-    # Уральский федеральный округ
-    "Курганская": "Уральский",
-    "Свердловская": "Уральский",
-    "Тюменская": "Уральский",
-    "Челябинская": "Уральский",
-    "Ханты-Мансийский": "Уральский",
-    "Ямало-Ненецкий": "Уральский",
-
-    # Сибирский федеральный округ
-    "Алтайский": "Сибирский",
-    "Красноярский": "Сибирский",
-    "Республика Бурятия": "Сибирский",
-    "Республика Хакасия": "Сибирский",
-    "Республика Тыва": "Сибирский",
-    "Иркутская": "Сибирский",
-    "Кемеровская": "Сибирский",
-    "Омская": "Сибирский",
-    "Новосибирская": "Сибирский",
-    "Томская": "Сибирский",
-
-    # Дальневосточный федеральный округ
-    "Приморский": "Дальневосточный",
-    "Хабаровский": "Дальневосточный",
-    "Забайкальский": "Дальневосточный",
-    "Сахалинская": "Дальневосточный",
-    "Еврейская": "Дальневосточный",
-    "Республика Саха": "Дальневосточный",
-    "Республика Саха (Якутия)": "Дальневосточный",
-    "Камчатский": "Дальневосточный",
-    "Магаданская": "Дальневосточный",
-    "Чукотский": "Дальневосточный",
-
-    # 海外国家（非俄罗斯）
-    "Минск": "Беларусь",
-    "Минская": "Беларусь",
-    "Брестская": "Беларусь",
-    "Гродненская": "Беларусь",
-    "Витебская": "Беларусь",
-    "Могилёвская": "Беларусь",
-
-    "Западно-Казахстанская": "Казахстан",
-    "Северо-Казахстанская": "Казахстан",
-
-    "Ереван": "Армения",
-
-    # 默认兜底
-    "Республика": "Другой регион РФ",
-}
-
-# 俄文区域名称 → 中文
-REGION_CN = {
-    "Москва": "莫斯科",
-    "Московская": "莫斯科州",
-
-    "Санкт-Петербург": "圣彼得堡",
-    "Ленинградская": "列宁格勒州",
-
-    "Краснодарский": "克拉斯诺达尔边疆区",
-    "Ростовская": "罗斯托夫州",
-    "Ставропольский": "斯塔夫罗波尔边疆区",
-
-    "Нижегородская": "下诺夫哥罗德州",
-    "Самарская": "萨马拉州",
-    "Саратовская": "萨拉托夫州",
-    "Оренбургская": "奥伦堡州",
-    "Ульяновская": "乌里扬诺夫斯克州",
-    "Кировская": "基洛夫州",
-    "Пензенская": "彭扎州",
-    "Чувашская": "楚瓦什共和国",
-
-    "Свердловская": "斯维尔德洛夫斯克州",
-    "Челябинская": "车里雅宾斯克州",
-    "Курганская": "库尔干州",
-    "Тюменская": "秋明州",
-    "Ханты-Мансийский": "汉特-曼西自治区",
-    "Ямало-Ненецкий": "亚马尔-涅涅茨自治区",
-
-    "Приморский": "滨海边疆区",
-    "Хабаровский": "哈巴罗夫斯克边疆区",
-    "Забайкальский": "外贝加尔边疆区",
-    "Сахалинская": "萨哈林州",
-    "Еврейская": "犹太自治州",
-
-    "Алтайский": "阿尔泰边疆区",
-    "Красноярский": "克拉斯诺亚尔斯克边疆区",
-    "Иркутская": "伊尔库茨克州",
-    "Кемеровская": "克麦罗沃州",
-    "Омская": "鄂木斯克州",
-    "Новосибирская": "新西伯利亚州",
-    "Томская": "托木斯克州",
-
-    "Воронежская": "沃罗涅日州",
-    "Белгородская": "别尔哥罗德州",
-    "Смоленская": "斯摩棱斯克州",
-    "Тверская": "特维尔州",
-    "Брянская": "布良斯克州",
-    "Орловская": "奥廖尔州",
-    "Курская": "库尔斯克州",
-    "Ивановская": "伊万诺沃州",
-    "Калужская": "卡卢加州",
-    "Костромская": "科斯特罗马州",
-    "Липецкая": "利佩茨克州",
-    "Тамбовская": "坦波夫州",
-    "Ярославская": "雅罗斯拉夫尔州",
-    "Владимирская": "弗拉基米尔州",
-    "Рязанская": "梁赞州",
-
-    "Мурманская": "穆尔曼斯克州",
-    "Вологодская": "沃洛格达州",
-    "Новгородская": "诺夫哥罗德州",
-    "Псковская": "普斯科夫州",
-    "Калининградская": "加里宁格勒州",
-
-    "Севастополь": "塞瓦斯托波尔",
-
-    # 白俄罗斯
-    "Минск": "明斯克",
-    "Минская": "明斯克州",
-    "Гродненская": "格罗德诺州",
-    "Брестская": "布列斯特州",
-    "Витебская": "维捷布斯克州",
-    "Могилёвская": "莫吉廖夫州",
-
-    # 哈萨克斯坦
-    "Западно-Казахстанская": "西哈萨克斯坦州",
-    "Северо-Казахстанская": "北哈萨克斯坦州",
-
-    # 亚美尼亚
-    "Ереван": "埃里温",
-
-    # 其他未知
-    "Республика": "未知共和国",
-}
-REGION_CN.update({
-    "Республика Крым": "克里米亚共和国",
-    "Республика Башкортостан": "巴什科尔托斯坦共和国",
-    "Республика Мордовия": "莫尔多瓦共和国",
-    "Республика Марий": "马里埃尔共和国",
-    "Республика Марий Эл": "马里埃尔共和国",
-    "Республика Карелия": "卡累利阿共和国",
-    "Республика Бурятия": "布里亚特共和国",
-    "Республика Хакасия": "哈卡斯共和国",
-    "Республика Ингушетия": "印古什共和国",
-    "Республика Калмыкия": "卡尔梅克共和国",
-    "Республика Саха": "萨哈共和国（雅库特）",
-    "Республика Саха (Якутия)": "萨哈共和国（雅库特）",
-    "Республика Тыва": "图瓦共和国",
-
-    "Архангельская": "阿尔汉格尔斯克州",
-    "Волгоградская": "伏尔加格勒州",
-    "Астраханская": "阿斯特拉罕州",
-    "Пермский": "彼尔姆边疆区",
-
-    "Кабардино-Балкарская": "卡巴尔达-巴尔卡尔共和国",
-    "Республика Дагестан": "达吉斯坦共和国",
-    "Тульская": "图拉州",
-    "Республика Адыгея": "阿迪格共和国",
-    "Республика Татарстан": "鞑靼斯坦共和国",
-})
-
-# 联邦区中文映射
-DISTRICT_CN = {
-    "Центральный": "中央联邦区",
-    "Северо-Западный": "西北联邦区",
-    "Южный": "南部联邦区",
-    "Северо-Кавказский": "北高加索联邦区",
-    "Приволжский": "伏尔加联邦区",
-    "Уральский": "乌拉尔联邦区",
-    "Сибирский": "西伯利亚联邦区",
-    "Дальневосточный": "远东联邦区",
-
-    # 海外地区
-    "Беларусь": "白俄罗斯",
-    "Казахстан": "哈萨克斯坦",
-    "Армения": "亚美尼亚",
-
-    # 兜底分类
-    "Другой регион РФ": "俄罗斯其他地区",
-    "Прочие/СНГ": "其他独联体地区",
-}
-
-
-def map_district(region: str) -> str:
-    """区域名 -> 联邦区 / 国家"""
-    return REGION_TO_DISTRICT.get(region, "Прочие/СНГ")
-
-
-def map_region_cn(region: str) -> str:
-    return REGION_CN.get(region, region)
-
-
-def map_district_cn(district: str) -> str:
-    return DISTRICT_CN.get(district, district)
-
-
-def get_address_column(df: pd.DataFrame) -> str:
-    """
-    找出地址列：
-    优先使用“Наименование офиса доставки”
-    """
-    candidates = [
-        "Наименование офиса доставки",
-        "Наименование офиса",
-    ]
-
-    for col in df.columns:
-        if col in candidates:
-            return col
-        if isinstance(col, str) and "офиса доставки" in col:
-            return col
-
-    # 找不到就抛错（方便你以后调整）
-    raise RuntimeError("找不到地址列，请确认列名中包含 'Наименование офиса доставки' 等字段。")
-
-
-def extract_region(address) -> str:
-    """
-    从地址里抽取区域名：
-    - 如果是 Республика Татарстан → 返回 'Республика Татарстан'
-    - 否则返回第一个单词，例如 'Московская область...' → 'Московская'
-    """
-    if not isinstance(address, str):
-        return "未知地区"
-    parts = address.split()
-    if len(parts) >= 2 and parts[0] == "Республика":
-        return " ".join(parts[:2])
-    return parts[0]
-
-
-def build_sales_table(df: pd.DataFrame, addr_col: str) -> pd.DataFrame:
-    """
-    销售成功表（按行统计）：
-    条件：logistics_fee_type == 'К клиенту при продаже'
-    """
-    logistic_col = "logistics_fee_type"
-
-    if logistic_col not in df.columns:
-        raise RuntimeError("数据中缺少 'logistics_fee_type' 列，无法统计区域销售。")
-
-    sales_df = df[df[logistic_col] == "К клиенту при продаже"].copy()
-
-    if sales_df.empty:
-        return pd.DataFrame(columns=["region", "sales"])
-
-    sales_df["region"] = sales_df[addr_col].apply(extract_region)
-
-    grouped = (
-        sales_df.groupby("region")
-        .agg(sales=("region", "count"))
-        .reset_index()
-        .sort_values("sales", ascending=False)
-    )
-    return grouped
-
-
-def build_cancel_table(df: pd.DataFrame, addr_col: str) -> pd.DataFrame:
-    """
-    取消订单表（按行统计）：
-    条件：logistics_fee_type == 'От клиента при отмене'
-    """
-    logistic_col = "logistics_fee_type"
-
-    if logistic_col not in df.columns:
-        raise RuntimeError("数据中缺少 'logistics_fee_type' 列，无法统计区域取消。")
-
-    cancel_df = df[df[logistic_col] == "От клиента при отмене"].copy()
-
-    if cancel_df.empty:
-        return pd.DataFrame(columns=["region", "cancel_orders"])
-
-    cancel_df["region"] = cancel_df[addr_col].apply(extract_region)
-
-    grouped = (
-        cancel_df.groupby("region")
-        .agg(cancel_orders=("region", "count"))
-        .reset_index()
-        .sort_values("cancel_orders", ascending=False)
-    )
-    return grouped
-
-
-def compute_region_tables(df: pd.DataFrame):
-    """
-    基于当前合并后的 df，计算：
-    - sales_by_region：各区域销售笔数
-    - cancel_by_region：各区域取消笔数
-    - district_summary：各联邦区销售/取消/取消率
-    """
-    try:
-        addr_col = get_address_column(df)
-    except Exception:
-        # 如果找不到地址列，返回空表，但不影响主流程
-        empty_region = pd.DataFrame(columns=["region", "sales", "region_cn", "district", "district_cn"])
-        empty_cancel = pd.DataFrame(columns=["region", "cancel_orders", "region_cn", "district", "district_cn"])
-        empty_dist = pd.DataFrame(columns=["district", "district_cn", "sales", "cancel_orders", "total_orders", "cancel_rate"])
-        return empty_region, empty_cancel, empty_dist
-
-    sales_raw = build_sales_table(df, addr_col)      # region, sales
-    cancel_raw = build_cancel_table(df, addr_col)    # region, cancel_orders
-
-    # 补充中文 & 联邦区
-    def enrich_region_table(base: pd.DataFrame, is_sales: bool) -> pd.DataFrame:
-        if base.empty:
-            cols = ["region"] + (["sales"] if is_sales else ["cancel_orders"])
-            out = pd.DataFrame(columns=cols + ["region_cn", "district", "district_cn"])
-            return out
-
-        out = base.copy()
-        out["region_cn"] = out["region"].apply(map_region_cn)
-        out["district"] = out["region"].apply(map_district)
-        out["district_cn"] = out["district"].apply(map_district_cn)
-        return out
-
-    sales_by_region = enrich_region_table(sales_raw, is_sales=True)
-    cancel_by_region = enrich_region_table(cancel_raw, is_sales=False)
-
-    # 按联邦区聚合
-    if sales_by_region.empty and cancel_by_region.empty:
-        district_summary = pd.DataFrame(
-            columns=["district", "district_cn", "sales", "cancel_orders", "total_orders", "cancel_rate"]
-        )
-    else:
-        sales_d = (
-            sales_by_region.groupby("district", as_index=False)["sales"].sum()
-            if not sales_by_region.empty
-            else pd.DataFrame(columns=["district", "sales"])
-        )
-        cancel_d = (
-            cancel_by_region.groupby("district", as_index=False)["cancel_orders"].sum()
-            if not cancel_by_region.empty
-            else pd.DataFrame(columns=["district", "cancel_orders"])
-        )
-        district_summary = pd.merge(sales_d, cancel_d, on="district", how="outer").fillna(0)
-        district_summary["sales"] = district_summary["sales"].astype(int)
-        district_summary["cancel_orders"] = district_summary["cancel_orders"].astype(int)
-        district_summary["total_orders"] = district_summary["sales"] + district_summary["cancel_orders"]
-        district_summary["cancel_rate"] = 0.0
-        mask = district_summary["total_orders"] > 0
-        district_summary.loc[mask, "cancel_rate"] = (
-            district_summary.loc[mask, "cancel_orders"] / district_summary.loc[mask, "total_orders"]
-        )
-        district_summary["district_cn"] = district_summary["district"].apply(map_district_cn)
-        district_summary = district_summary.sort_values("sales", ascending=False)
-
-    return sales_by_region, cancel_by_region, district_summary
-
-
-# ==============================
 # 1. 字段映射 & 枚举配置
 # ==============================
 
@@ -442,8 +23,6 @@ COLUMN_MAP = {
     "Сумма удержанная за начисленные баллы программы лояльности": "loyalty_points_deduction",
     "Кол-во": "quantity",
     "Склад": "warehouse",
-    "Хранение": "storage_fee",
-
 }
 
 REASON_SALES = ["Продажа"]
@@ -489,7 +68,7 @@ BACKWARD_CANCEL_TYPES = FEE_TYPE_MAP["cancel_logistics_backward"]["ru_types"]
 
 
 # ==============================
-# 2. 读 & 合并上传的报表
+# 2. 读 & 合并当前周上传的所有报表（第0步）
 # ==============================
 
 def load_week_data_from_upload(files) -> pd.DataFrame:
@@ -512,7 +91,6 @@ def load_week_data_from_upload(files) -> pd.DataFrame:
         "loyalty_service_fee",
         "loyalty_points_deduction",
         "quantity",
-        "storage_fee",
     ]:
         if col not in combined_df.columns:
             combined_df[col] = 0
@@ -521,7 +99,7 @@ def load_week_data_from_upload(files) -> pd.DataFrame:
 
 
 # ==============================
-# 3. 采购成本 & 利润
+# 3. 步骤1：销售统计（按SKU）
 # ==============================
 
 def load_cost_table(cost_file) -> pd.DataFrame:
@@ -561,7 +139,7 @@ def load_cost_table(cost_file) -> pd.DataFrame:
         cost_col: "unit_cost",
     })
 
-    # 同一个 SKU 如果出现多次，取平均
+    # 同一个 SKU 如果出现多次，取平均或者最大值，这里先用平均
     cost_df = (
         cost_df
         .groupby("SKU", as_index=False)["unit_cost"]
@@ -569,8 +147,6 @@ def load_cost_table(cost_file) -> pd.DataFrame:
     )
 
     return cost_df
-
-
 def compute_profit_by_sku(net_sales_df: pd.DataFrame,
                           sales_logistics_by_sku: pd.DataFrame,
                           cancel_logistics_by_sku: pd.DataFrame,
@@ -594,7 +170,7 @@ def compute_profit_by_sku(net_sales_df: pd.DataFrame,
         columns={"barcode": "SKU"}
     )[["SKU", "sales_logistics_sum"]].copy()
 
-    # 3) 合并取消/退货相关的物流费用
+    # 3) 合并取消/退货相关的物流费用（这里用 total_cancel_logistics）
     cancel_log = cancel_logistics_by_sku.rename(
         columns={"barcode": "SKU"}
     )[["SKU", "total_cancel_logistics"]].copy()
@@ -633,14 +209,10 @@ def compute_profit_by_sku(net_sales_df: pd.DataFrame,
         "利润": merged["profit"],
     })
 
+    # 可以按利润或 SKU 排序，这里先按 SKU
     profit_df = profit_df.sort_values("SKU")
 
     return profit_df
-
-
-# ==============================
-# 4. 销售 / 退货 / 净销售
-# ==============================
 
 def compute_sales_by_sku(df: pd.DataFrame) -> pd.DataFrame:
     sales_df = df[df["reason_for_payment"].isin(REASON_SALES)].copy()
@@ -664,6 +236,10 @@ def compute_sales_by_sku(df: pd.DataFrame) -> pd.DataFrame:
     return grouped
 
 
+# ==============================
+# 4. 步骤2：退货统计（按SKU）
+# ==============================
+
 def compute_returns_by_sku(df: pd.DataFrame) -> pd.DataFrame:
     returns_df = df[df["reason_for_payment"].isin(REASON_RETURNS)].copy()
 
@@ -681,6 +257,10 @@ def compute_returns_by_sku(df: pd.DataFrame) -> pd.DataFrame:
     )
     return grouped
 
+
+# ==============================
+# 5. 步骤3：净销售（销售 − 退货）
+# ==============================
 
 def compute_net_sales_by_sku(sales_by_sku: pd.DataFrame,
                              returns_by_sku: pd.DataFrame) -> pd.DataFrame:
@@ -713,13 +293,28 @@ def compute_net_sales_by_sku(sales_by_sku: pd.DataFrame,
         "net_retail_price": "后台定价",
     })
 
+    # 按 SKU 排序
     net_df = net_df.sort_values("SKU")
+
+    # 在表格首行添加总计
+    total_row = {
+        "SKU": "总计",
+        "件数": net_df["件数"].sum(),
+        "商品应付金额": net_df["商品应付金额"].sum(),
+        "前台销售额": net_df["前台销售额"].sum(),
+        "后台定价": net_df["后台定价"].sum(),
+    }
+    net_df = pd.concat(
+        [pd.DataFrame([total_row]), net_df],
+        ignore_index=True,
+    )
 
     return net_df
 
 
+
 # ==============================
-# 5. 销售物流 / 取消物流 / 取消率
+# 6. 步骤4：销售物流费用（按SKU）
 # ==============================
 
 def compute_sales_logistics_by_sku(df: pd.DataFrame) -> pd.DataFrame:
@@ -743,6 +338,10 @@ def compute_sales_logistics_by_sku(df: pd.DataFrame) -> pd.DataFrame:
 
     return grouped
 
+
+# ==============================
+# 7. 步骤5：取消订单物流费用（按SKU）
+# ==============================
 
 def compute_cancel_logistics_by_sku(df: pd.DataFrame) -> pd.DataFrame:
     forward_df = df[df["logistics_fee_type"].isin(FORWARD_CANCEL_TYPES)].copy()
@@ -784,6 +383,10 @@ def compute_cancel_logistics_by_sku(df: pd.DataFrame) -> pd.DataFrame:
     return merged.sort_values("barcode")
 
 
+# ==============================
+# 8. 步骤6：每个 SKU 的取消率
+# ==============================
+
 def compute_cancellation_rate(sales_by_sku: pd.DataFrame,
                               cancel_log_by_sku: pd.DataFrame) -> pd.DataFrame:
     merged = pd.merge(
@@ -802,7 +405,7 @@ def compute_cancellation_rate(sales_by_sku: pd.DataFrame,
 
 
 # ==============================
-# 6. 费用汇总 & 总览
+# 9. 步骤7：费用分类汇总
 # ==============================
 
 def compute_fee_summary(df: pd.DataFrame,
@@ -812,15 +415,12 @@ def compute_fee_summary(df: pd.DataFrame,
       只保留两列：description / total_fee
       行包括：
         - 各费用类别（物流、罚款、忠诚计划等）
-        - 仓储费（Хранение）
-        - 采购成本
-        - 平台其他费用合计
-        - 总费用（平台费用 + 采购成本）
+        - 采购成本（来自净利润表）
+        - 总费用（以上全部之和）
     """
     rows = []
 
-    # 1) 各费用类别（不包含采购成本 & 仓储费）
-    platform_fee_total = 0.0
+    # 1) 各费用类别（不包含采购成本）
     for cat, info in FEE_TYPE_MAP.items():
         ru_types = info["ru_types"]
         sub = df[df["logistics_fee_type"].isin(ru_types)].copy()
@@ -835,30 +435,18 @@ def compute_fee_summary(df: pd.DataFrame,
             loyalty_points_sum = sub["loyalty_points_deduction"].sum()
             logistics_sum = sub["delivery_to_customer"].sum()
 
+        # total_fee = 真正的费用：罚款 + 忠诚服务费 + 积分扣费 + 物流费用
         total_fee = (
             fine_sum
             + loyalty_service_sum
             + loyalty_points_sum
             + logistics_sum
         )
-        platform_fee_total += total_fee
 
         rows.append({
             "description": info["desc"],
             "total_fee": total_fee,
         })
-
-    # 1.5) 仓储费（整列 storage_fee 的总和）
-    if "storage_fee" in df.columns:
-        storage_total = float(df["storage_fee"].sum())
-    else:
-        storage_total = 0.0
-
-    rows.append({
-        "description": "仓储费",
-        "total_fee": storage_total,
-    })
-    platform_fee_total += storage_total
 
     # 2) 采购成本：来自净利润表中的“采购成本”列
     if "采购成本" in profit_by_sku.columns:
@@ -871,14 +459,9 @@ def compute_fee_summary(df: pd.DataFrame,
         "total_fee": purchase_total,
     })
 
-    # 3) 平台其他费用合计（含仓储费）
-    rows.append({
-        "description": "平台其他费用合计",
-        "total_fee": platform_fee_total,
-    })
+    # 3) 总费用 = 上面所有 total_fee 之和
+    total_all = sum(r["total_fee"] for r in rows)
 
-    # 4) 总费用 = 平台费用 + 采购成本
-    total_all = platform_fee_total + purchase_total
     rows.append({
         "description": "总费用",
         "total_fee": total_all,
@@ -889,10 +472,10 @@ def compute_fee_summary(df: pd.DataFrame,
     return fee_df
 
 
-    fee_df = pd.DataFrame(rows, columns=["description", "total_fee"])
 
-    return fee_df
-
+# ==============================
+# 10. 步骤8：总览 & 平台应付金额
+# ==============================
 
 def compute_final_overview(df: pd.DataFrame,
                            fee_summary: pd.DataFrame) -> pd.DataFrame:
@@ -907,22 +490,10 @@ def compute_final_overview(df: pd.DataFrame,
 
     net_sales_amount = total_sales_amount - total_return_amount
 
-    # 从 fee_summary 中读出：平台费用 & 采购成本 & 总费用
-    def get_fee(desc: str) -> float:
-        mask = fee_summary["description"] == desc
-        if mask.any():
-            return float(fee_summary.loc[mask, "total_fee"].iloc[0])
-        return 0.0
-
-    platform_fee_amount = get_fee("平台其他费用合计")
-    purchase_cost_total = get_fee("采购成本")
-    total_fee_amount = get_fee("总费用")
-
-    # 平台最终应付金额 = 净销售结算金额 - 平台费用（不扣采购成本）
-    final_payable_amount = net_sales_amount - platform_fee_amount
-
-    # 净利润 = 平台最终应付金额 - 采购成本
-    net_profit = final_payable_amount - purchase_cost_total
+    total_fee_amount = float(
+          fee_summary.loc[fee_summary["description"] == "总费用", "total_fee"].iloc[0]
+    )
+    final_payable_amount = net_sales_amount - total_fee_amount
 
     overview = pd.DataFrame(
         [
@@ -931,11 +502,8 @@ def compute_final_overview(df: pd.DataFrame,
             {"metric": "total_sales_amount", "value": total_sales_amount},
             {"metric": "total_return_amount", "value": total_return_amount},
             {"metric": "net_sales_amount", "value": net_sales_amount},
-            {"metric": "platform_fee_amount", "value": platform_fee_amount},
-            {"metric": "purchase_cost_total", "value": purchase_cost_total},
             {"metric": "total_fee_amount", "value": total_fee_amount},
             {"metric": "final_payable_amount", "value": final_payable_amount},
-            {"metric": "net_profit", "value": net_profit},
         ]
     )
 
@@ -946,11 +514,8 @@ def compute_final_overview(df: pd.DataFrame,
         "total_sales_amount": "销售结算金额（含退货前）",
         "total_return_amount": "退货结算金额",
         "net_sales_amount": "净销售结算金额",
-        "platform_fee_amount": "平台费用（不含采购成本）",
-        "purchase_cost_total": "采购成本总额",
-        "total_fee_amount": "总费用（平台费用+采购成本）",
+        "total_fee_amount": "费用总额",
         "final_payable_amount": "平台最终应付金额",
-        "net_profit": "净利润",
     }
 
     overview["metric_zh"] = overview["metric"].map(metric_zh_map)
@@ -961,8 +526,9 @@ def compute_final_overview(df: pd.DataFrame,
     return overview
 
 
+
 # ==============================
-# 7. 生成 summary.xlsx 供下载
+# 11. 生成 summary.xlsx 供下载
 # ==============================
 
 def build_summary_excel(week_label: str,
@@ -974,10 +540,7 @@ def build_summary_excel(week_label: str,
                         cancellation_rate_by_sku: pd.DataFrame,
                         fee_summary: pd.DataFrame,
                         overview: pd.DataFrame,
-                        profit_by_sku: pd.DataFrame,
-                        sales_by_region: pd.DataFrame,
-                        cancel_by_region: pd.DataFrame,
-                        district_summary: pd.DataFrame) -> bytes:
+                        profit_by_sku: pd.DataFrame) -> bytes:
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -990,16 +553,13 @@ def build_summary_excel(week_label: str,
         fee_summary.to_excel(writer, sheet_name="Fee_Summary", index=False)
         overview.to_excel(writer, sheet_name="Final_Overview", index=False)
         profit_by_sku.to_excel(writer, sheet_name="Profit_by_SKU", index=False)
-        sales_by_region.to_excel(writer, sheet_name="Sales_by_Region", index=False)
-        cancel_by_region.to_excel(writer, sheet_name="Cancel_by_Region", index=False)
-        district_summary.to_excel(writer, sheet_name="District_Summary", index=False)
 
     output.seek(0)
     return output.getvalue()
 
 
 # ==============================
-# 8. Streamlit 网页界面
+# 12. Streamlit 网页界面
 # ==============================
 
 def main():
@@ -1010,18 +570,18 @@ def main():
     st.markdown(
         """
         使用说明：
-        1. 在下方上传要分析的 WB 财务报表（可以一次上传多周、多份，境内 + 境外混合）；
-        2. 输入本次分析的标签（例如：`20251103-1109` 或 `Q4汇总`）；
-        3. 如需计算利润，请上传采购成本文件（SKU / 采购成本）；
-        4. 点击“开始分析”，稍等即可查看结果，并在页面底部下载 summary.xlsx。
+        1. 在下方上传本周的 **2 份 WB 财务报表**（境内 + 境外），均为 `.xlsx` 格式；
+        2. 输入对应的周标签（例如：`0311-0911`）；
+        3. 点击“开始分析”，稍等即可查看各个结果表；
+        4. 可以在页面底部 **下载 summary.xlsx** 保存。
         """
     )
     week_label = st.text_input("本次分析的名称/标签（例如：20251103-1109 或 Q4汇总）", value="20251103-1109")
 
     uploaded_files = st.file_uploader(
-        "上传要分析的 WB 财务报表（可以一次上传多周、多份，境内+境外混合）",
-        type=["xlsx"],
-        accept_multiple_files=True,
+    "上传要分析的 WB 财务报表（可以一次上传多周、多份，境内+境外混合）",
+    type=["xlsx"],
+    accept_multiple_files=True,
     )
 
     selected_files = []
@@ -1057,9 +617,9 @@ def main():
         selected_files = [f for f in uploaded_files if f.name in selected_labels]
 
     cost_file = st.file_uploader(
-        "上传采购成本文件（两列：SKU / 采购成本）",
-        type=["xlsx"],
-        accept_multiple_files=False,
+    "上传采购成本文件（两列：SKU / 采购成本）",
+    type=["xlsx"],
+    accept_multiple_files=False,
     )
 
     if st.button("开始分析"):
@@ -1080,11 +640,45 @@ def main():
         sales_logistics_by_sku = compute_sales_logistics_by_sku(df)
         cancel_logistics_by_sku = compute_cancel_logistics_by_sku(df)
         cancellation_rate_by_sku = compute_cancellation_rate(sales_by_sku, cancel_logistics_by_sku)
+        # 2) 处理采购成本表
+        if cost_file is not None:
+            try:
+                cost_df = load_cost_table(cost_file)
+            except Exception as e:
+                st.error(f"读取采购成本文件时出错：{e}")
+                cost_df = pd.DataFrame(columns=["SKU", "unit_cost"])
+        else:
+            st.warning("未上传采购成本文件，本次利润计算中的采购成本将视为 0。")
+            cost_df = pd.DataFrame(columns=["SKU", "unit_cost"])
 
-        # 区域统计（按地区 & 联邦区）
-        sales_by_region, cancel_by_region, district_summary = compute_region_tables(df)
+        # 3) 计算利润表（这里的 net_sales_by_sku 已经是中文表头版本）
+        profit_by_sku = compute_profit_by_sku(
+            net_sales_by_sku,
+            sales_logistics_by_sku,
+            cancel_logistics_by_sku,
+            cost_df,
+        )
 
-        # 处理采购成本表
+        # 4) 费用汇总（把采购成本也算进去）
+        fee_summary = compute_fee_summary(df, profit_by_sku)
+
+        # 5) 总览（使用新的 fee_summary）
+        overview = compute_final_overview(df, fee_summary)
+
+        # 顶部总览指标
+        st.subheader("本周关键指标总览")
+        col1, col2, col3, col4 = st.columns(4)
+        total_sales_qty = int(overview.loc[overview["metric"] == "total_sales_qty", "value"].iloc[0])
+        total_return_qty = int(overview.loc[overview["metric"] == "total_return_qty", "value"].iloc[0])
+        net_sales_amount = float(overview.loc[overview["metric"] == "net_sales_amount", "value"].iloc[0])
+        final_payable_amount = float(overview.loc[overview["metric"] == "final_payable_amount", "value"].iloc[0])
+
+        col1.metric("销售件数", total_sales_qty)
+        col2.metric("退货件数", total_return_qty)
+        col3.metric("净销售结算金额", f"{net_sales_amount:,.2f} ₽")
+        col4.metric("平台最终应付金额", f"{final_payable_amount:,.2f} ₽")
+
+        # 处理采购成本表（如果没上传，则成本视为 0）
         if cost_file is not None:
             try:
                 cost_df = load_cost_table(cost_file)
@@ -1103,87 +697,50 @@ def main():
             cost_df,
         )
 
-        # 费用汇总 & 总览
-        fee_summary = compute_fee_summary(df, profit_by_sku)
-        overview = compute_final_overview(df, fee_summary)
-
-        # 顶部总览指标
-        st.subheader("本次分析关键指标总览")
-        col1, col2, col3, col4 = st.columns(4)
-        total_sales_qty = int(overview.loc[overview["metric"] == "total_sales_qty", "value"].iloc[0])
-        total_return_qty = int(overview.loc[overview["metric"] == "total_return_qty", "value"].iloc[0])
-        net_sales_amount = float(overview.loc[overview["metric"] == "net_sales_amount", "value"].iloc[0])
-        final_payable_amount = float(overview.loc[overview["metric"] == "final_payable_amount", "value"].iloc[0])
-
-        col1.metric("销售件数", total_sales_qty)
-        col2.metric("退货件数", total_return_qty)
-        col3.metric("净销售结算金额", f"{net_sales_amount:,.2f} ₽")
-        col4.metric("平台最终应付金额", f"{final_payable_amount:,.2f} ₽")
-
+        
         # 多个 tab 显示明细
         st.subheader("明细表")
         tabs = st.tabs([
-            "1️⃣ 销售 & 退货 & 净销售",
-            "2️⃣ 物流 & 取消率",
-            "3️⃣ 费用 & 总览 & 利润",
-            "4️⃣ 销售区域统计",
+            "1️⃣ 销售按SKU",
+            "2️⃣ 退货按SKU",
+            "3️⃣ 净销售按SKU",
+            "4️⃣ 销售物流费用",
+            "5️⃣ 取消订单物流",
+            "6️⃣ SKU 取消率",
+            "7️⃣ 费用汇总",
+            "8️⃣ Final Overview",
+            "9️⃣ 净利润按SKU",
         ])
 
-        # ====== Tab 1：销售 + 退货 + 净销售 ======
         with tabs[0]:
-            st.markdown("### 净销售按 SKU")
+            st.dataframe(sales_by_sku, use_container_width=True)
+
+        with tabs[1]:
+            st.dataframe(returns_by_sku, use_container_width=True)
+
+        with tabs[2]:
             st.dataframe(net_sales_by_sku, use_container_width=True)
 
-            st.markdown("---")
-            left, right = st.columns(2)
-            with left:
-                st.markdown("#### 销售按 SKU")
-                st.dataframe(sales_by_sku, use_container_width=True)
-            with right:
-                st.markdown("#### 退货按 SKU")
-                st.dataframe(returns_by_sku, use_container_width=True)
+        with tabs[3]:
+            st.dataframe(sales_logistics_by_sku, use_container_width=True)
 
-        # ====== Tab 2：物流 + 取消率 ======
-        with tabs[1]:
-            st.markdown("### SKU 取消率")
+        with tabs[4]:
+            st.dataframe(cancel_logistics_by_sku, use_container_width=True)
+
+        with tabs[5]:
             st.dataframe(cancellation_rate_by_sku, use_container_width=True)
 
-            st.markdown("---")
-            left, right = st.columns(2)
-            with left:
-                st.markdown("#### 销售物流费用")
-                st.dataframe(sales_logistics_by_sku, use_container_width=True)
-            with right:
-                st.markdown("#### 取消订单物流费用")
-                st.dataframe(cancel_logistics_by_sku, use_container_width=True)
-
-        # ====== Tab 3：费用 + 总览 + 利润 ======
-        with tabs[2]:
-            st.markdown("### 总览（中文）")
-            overview_display = overview[["metric_zh", "value"]].rename(
-                columns={"metric_zh": "指标", "value": "数值"}
-            )
-            st.dataframe(overview_display, use_container_width=True)
-
-            st.markdown("---")
-            st.markdown("### 费用汇总")
+        with tabs[6]:
             st.dataframe(fee_summary, use_container_width=True)
 
-            st.markdown("---")
-            st.markdown("### 净利润按 SKU")
+        with tabs[7]:
+            st.dataframe(overview, use_container_width=True)
+        with tabs[8]:
             st.dataframe(profit_by_sku, use_container_width=True)
 
-        # ====== Tab 4：区域统计 ======
-        with tabs[3]:
-            st.markdown("#### 按地区统计（Region）")
-            st.dataframe(sales_by_region, use_container_width=True)
-            st.markdown("#### 按地区取消（Region）")
-            st.dataframe(cancel_by_region, use_container_width=True)
-            st.markdown("#### 按联邦区统计汇总（District）")
-            st.dataframe(district_summary, use_container_width=True)
 
         # 下载 summary.xlsx
-        st.subheader("下载本次分析 Excel 总结")
+        st.subheader("下载周报 Excel 总结")
 
         excel_bytes = build_summary_excel(
             week_label,
@@ -1196,9 +753,6 @@ def main():
             fee_summary,
             overview,
             profit_by_sku,
-            sales_by_region,
-            cancel_by_region,
-            district_summary,
         )
 
         st.download_button(
@@ -1211,4 +765,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
